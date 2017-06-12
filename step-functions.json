@@ -40,6 +40,16 @@
     "StartJob": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:889476386829:function:qiita-sample-start-job",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.TaskFailed"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
       "Next": "WaitJob"
     },
     "WaitJob": {
