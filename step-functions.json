@@ -1,0 +1,88 @@
+{
+  "Comment": "Invoke job",
+  "StartAt": "StartInstance",
+  "States": {
+    "StartInstance": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:889476386829:function:qiita-sample-start-instance",
+      "Next": "WaitInstanceState"
+    },
+    "WaitInstanceState": {
+      "Type": "Wait",
+      "Seconds": 60,
+      "Next": "ConfirmInstanceState"
+    },
+    "ConfirmInstanceState": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:889476386829:function:qiita-sample-confirm-instance-state",
+      "Next": "ChoiceInstanceState"
+    },
+    "ChoiceInstanceState": {
+      "Type": "Choice",
+      "Default": "FailInstanceState",
+      "Choices": [
+        {
+          "Variable": "$.instance_state",
+          "StringEquals": "pending",
+          "Next": "WaitInstanceState"
+        },
+        {
+          "Variable": "$.instance_state",
+          "StringEquals": "running",
+          "Next": "StartJob"
+        }
+      ]
+    },
+    "FailInstanceState": {
+      "Type": "Fail",
+      "Cause": "Failed to launch instance"
+    },
+    "StartJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:889476386829:function:qiita-sample-start-job",
+      "Next": "WaitJob"
+    },
+    "WaitJob": {
+      "Type": "Wait",
+      "Seconds": 10,
+      "Next": "ConfirmJobStatus"
+    },
+    "ConfirmJobStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:889476386829:function:qiita-sample-confirm-job-status",
+      "Next": "ChoiceJobStatus"
+    },
+    "ChoiceJobStatus": {
+      "Type": "Choice",
+      "Default": "WaitJob",
+      "Choices": [
+        {
+          "Or": [
+            {
+              "Variable": "$.job_status",
+              "StringEquals": "Failed"
+            },
+            {
+              "Variable": "$.job_status",
+              "StringEquals": "TimedOut"
+            },
+            {
+              "Variable": "$.job_status",
+              "StringEquals": "Cancelled"
+            },
+            {
+              "Variable": "$.job_status",
+              "StringEquals": "Success"
+            }
+          ],
+          "Next": "TerminateInstance"
+        }
+      ]
+    },
+    "TerminateInstance": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:889476386829:function:qiita-sample-terminate-instance",
+      "End": true
+    }
+  }
+}
